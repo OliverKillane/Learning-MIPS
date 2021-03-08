@@ -15,33 +15,43 @@ main:
     li $v0, 4
     la $a0, str1
     syscall
-
-gloop:
+mainloop:
     jal print
 
-    li $v0, 4
-    la $a0, str3
-    syscall
-
+    # load first player
     lb $t1, p1
     jal choose
 
     jal print
 
+    #jal checkwin
+    #beq $v0, $0, end
+
+    # load second player
+    lb $t1, p2
+    jal choose
+
+    #jal checkwin
+    #beq $v0, $0, end
+
+    b mainloop
+
+end:
     li $v0, 4
     la $a0, str3
     syscall
 
-    lb $t1, p2
-    jal choose
+    li $v0, 4
+    move $a0, $t1
+    syscall
 
+    # return to kernel
+    jr $ra
 
-    b gloop
-
-    b exit
-
-
-# Prints out the board
+#-------------------print----------------------
+# Input: None -> Prints the board
+# Uses:
+# t1
 print:
     li $t1, 9
     la $a0, str2
@@ -67,11 +77,49 @@ loop:
     beq $t2, $0, newline
 continue:
     bne $t1, $0, loop
-
     jr $ra
+#-------------------print----------------------
 
 # Get user move choice
+# BUG here, resulting in constant win
+checkwin:
+    # set offsets of $t1, $t2, $t3
+    # current address of $t0
+    # is v0 is 0, then someone has won
 
+    #00 04 08
+    #12 16 20
+    #24 28 32
+
+    #diagonal left->right
+    addiu $t1, $0, 0
+    addiu $t2 ,$0, 16
+    addiu $t3, $0, 32
+
+    jal threequals
+
+    addiu $t1, $0, 8
+    addiu $t2 ,$0, 16
+    addiu $t3, $0, 24
+
+    jal threequals
+
+    jr $ra
+threequals:
+    lb $t1, cells($t1)
+    lb $t2, cells($t2)
+    lb $t3, cells($t3)
+    beq $t1, $t2, twoequal
+    jr $ra
+twoequal:
+    beq $t2, $t3, allequal
+    li $v0, 1
+    jr $ra
+allequal:
+    li $v0, 0
+    jr $ra
+
+# Get user's next move
 error:
     li $v0, 4
     la $a0, str5
@@ -94,14 +142,3 @@ choose:
 
     sb $t1, cells($v0)
     jr $ra
-
-
-
-
-# Set character in cells.
-
-
-
-exit:
-    li $v0, 10
-    syscall
